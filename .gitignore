@@ -18,3 +18,7 @@ ignition/deployments/chain-31337
 
 #docs
 /docs
+
+#参考代码
+/contracts/AstraToken.reference.sol
+/test/AstraToken.test.reference.ts
