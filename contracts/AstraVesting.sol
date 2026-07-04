@@ -16,8 +16,6 @@ import {
 contract AstraVesting is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20; //绑定IERC20合约，方便使用SafeERC20合约中的方法
 
-    
-
     IERC20 public astraToken;
     //ASTRA代币是否已设置
     bool private _tokenSet;
@@ -52,7 +50,9 @@ contract AstraVesting is AccessControl, ReentrancyGuard {
     }
 
     //设置ASTRA代币地址
-    function setAstraToken(address token) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setAstraToken(
+        address token
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(!_tokenSet, "token already set");
         require(token != address(0), "token=0");
         astraToken = IERC20(token);

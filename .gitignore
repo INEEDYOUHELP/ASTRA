@@ -19,8 +19,14 @@ ignition/deployments/chain-31337
 #docs
 /docs
 
-#参考代码
+# 参考代码
 /contracts/AstraToken.reference.sol
 /contracts/AstraVesting.reference.sol
+/contracts/AstraStaking.reference.sol
+/contracts/interfaces/IAstraReferral.reference.sol
 /test/AstraToken.test.reference.ts
 /test/AstraVesting.test.reference.ts
+/test/AstraStaking.test.reference.ts
+# 后期参考文件增多时可改用通配符，新增时不用逐条添加：
+# **/*.reference.sol
+# **/*.test.reference.ts
