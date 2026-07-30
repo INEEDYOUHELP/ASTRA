@@ -141,6 +141,7 @@ contract AstraStaking is AccessControl, ReentrancyGuard {
         }
 
         userInfo.rewardDebt = (userInfo.amount * accRewardPerShare) / ACC_PRECISION;
+        _checkLock();
         emit Staked(msg.sender, amount);
     }
 
@@ -163,6 +164,7 @@ contract AstraStaking is AccessControl, ReentrancyGuard {
         userInfo.rewardDebt = (userInfo.amount * accRewardPerShare) / ACC_PRECISION;
 
         astraToken.safeTransfer(msg.sender, amount);
+        _checkLock();
         emit Withdrawn(msg.sender, amount);
     }
 
@@ -177,6 +179,7 @@ contract AstraStaking is AccessControl, ReentrancyGuard {
         userInfo.rewardDebt = (userInfo.amount * accRewardPerShare) / ACC_PRECISION;
         astraToken.safeTransfer(msg.sender, pending);
         emit RewardClaimed(msg.sender, pending);
+        _checkLock();
     }
 
     function claim() external {
