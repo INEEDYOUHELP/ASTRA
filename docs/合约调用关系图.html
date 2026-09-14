@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Astra 合约调用关系图</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --panel2: #243044;
+      --border: #3d4f66;
+      --text: #e8eef6;
+      --muted: #9aabc0;
+      --accent: #5eb1ff;
+      --token: #f0b429;
+      --staking: #3dd68c;
+      --referral: #a78bfa;
+      --vesting: #fb923c;
+      --burn: #f87171;
+      --oracle: #67e8f9;
+      --user: #94a3b8;
+      --admin: #fbbf24;
+      --edge: #7dd3fc;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    header {
+      padding: 1.5rem 2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #1a2332 0%, var(--bg) 100%);
+    }
+    header h1 { margin: 0 0 0.35rem; font-size: 1.5rem; }
+    header p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 1.25rem 1.5rem 3rem; }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      margin: 1rem 0 1.25rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      display: inline-block;
+    }
+
+    .diagram {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      overflow-x: auto;
+    }
+
+    svg.graph { width: 100%; min-width: 980px; height: auto; display: block; }
+
+    .node-box {
+      fill: var(--panel2);
+      stroke-width: 2;
+      rx: 10;
+    }
+    .node-title {
+      fill: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+    }
+    .node-sub {
+      fill: var(--muted);
+      font-size: 11px;
+      font-family: inherit;
+    }
+
+    .edge-label {
+      fill: var(--edge);
+      font-size: 11px;
+      font-family: ui-monospace, Consolas, monospace;
+    }
+    .edge-sub {
+      fill: var(--muted);
+      font-size: 10px;
+      font-family: ui-monospace, Consolas, monospace;
+    }
+
+    section { margin-top: 2rem; }
+    section h2 {
+      font-size: 1.15rem;
+      margin: 0 0 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .tabs button {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .tabs button.active, .tabs button:hover {
+      color: var(--text);
+      border-color: var(--accent);
+      background: #1e3a5f;
+    }
+
+    .flow {
+      display: none;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+    }
+    .flow.active { display: block; }
+
+    .steps {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      counter-reset: step;
+    }
+    .steps li {
+      position: relative;
+      padding: 0.75rem 0 0.75rem 2.5rem;
+      border-left: 2px solid var(--border);
+      margin-left: 0.7rem;
+    }
+    .steps li:last-child { border-left-color: transparent; }
+    .steps li::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: -0.7rem;
+      top: 0.85rem;
+      width: 1.4rem;
+      height: 1.4rem;
+      border-radius: 50%;
+      background: #1e3a5f;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .steps code, table code, .call code {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 0.84em;
+      background: #0d1218;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      color: #c4e1ff;
+    }
+    .who {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 4px;
+      margin-right: 0.35rem;
+      font-weight: 600;
+    }
+    .who.user { background: #334155; color: #e2e8f0; }
+    .who.admin { background: #78350f; color: #fde68a; }
+    .who.keeper { background: #7f1d1d; color: #fecaca; }
+    .who.contract { background: #14532d; color: #bbf7d0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      background: var(--panel2);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(94, 177, 255, 0.06); }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      margin-left: 0.25rem;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .tag.write { color: #fca5a5; border-color: #7f1d1d; }
+    .tag.view { color: #86efac; border-color: #166534; }
+    .tag.config { color: #fcd34d; border-color: #854d0e; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+    }
+    .card h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+    }
+    .card ul {
+      margin: 0;
+      padding-left: 1.1rem;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .card li { margin: 0.25rem 0; }
+    .card li strong { color: var(--text); font-weight: 600; }
+
+    footer {
+      margin-top: 2rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 700px) {
+      header, .wrap { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Astra <code>contracts/</code> 调用关系图</h1>
+    <p>
+      基于当前仓库实现：标注跨合约方法、参数与调用方向。
+      覆盖 Token / Vesting / Staking / Referral / Burn / Oracle（Hardhat 模板已清理）。
+    </p>
+  </header>
+
+  <div class="wrap">
+    <div class="legend">
+      <span><i class="dot" style="background:var(--token)"></i>AstraToken</span>
+      <span><i class="dot" style="background:var(--vesting)"></i>AstraVesting</span>
+      <span><i class="dot" style="background:var(--staking)"></i>AstraStaking</span>
+      <span><i class="dot" style="background:var(--referral)"></i>AstraReferral</span>
+      <span><i class="dot" style="background:var(--burn)"></i>BurnController</span>
+      <span><i class="dot" style="background:var(--oracle)"></i>MockOracle</span>
+      <span><i class="dot" style="background:var(--user)"></i>外部角色</span>
+    </div>
+
+    <!-- ===================== SVG 总览 ===================== -->
+    <div class="diagram" aria-label="合约调用关系总览图">
+      <svg class="graph" viewBox="0 0 1100 720" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#7dd3fc" />
+          </marker>
+          <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f0b429" />
+          </marker>
+          <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f87171" />
+          </marker>
+          <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3dd68c" />
+          </marker>
+        </defs>
+
+        <!-- Actors -->
+        <rect class="node-box" x="40" y="40" width="140" height="64" stroke="#94a3b8" />
+        <text class="node-title" x="110" y="68" text-anchor="middle">User / 受益人</text>
+        <text class="node-sub" x="110" y="88" text-anchor="middle">EOA 调用入口</text>
+
+        <rect class="node-box" x="220" y="40" width="140" height="64" stroke="#fbbf24" />
+        <text class="node-title" x="290" y="68" text-anchor="middle">AdminSafe</text>
+        <text class="node-sub" x="290" y="88" text-anchor="middle">配置 / 授角色</text>
+
+        <rect class="node-box" x="400" y="40" width="140" height="64" stroke="#f87171" />
+        <text class="node-title" x="470" y="68" text-anchor="middle">Keeper</text>
+        <text class="node-sub" x="470" y="88" text-anchor="middle">周期销毁触发</text>
+
+        <!-- Core contracts -->
+        <rect class="node-box" x="430" y="180" width="200" height="78" stroke="#f0b429" />
+        <text class="node-title" x="530" y="212" text-anchor="middle">AstraToken</text>
+        <text class="node-sub" x="530" y="232" text-anchor="middle">ERC20 · burn(amount)</text>
+        <text class="node-sub" x="530" y="248" text-anchor="middle">BURNER_ROLE</text>
+
+        <rect class="node-box" x="40" y="320" width="200" height="78" stroke="#fb923c" />
+        <text class="node-title" x="140" y="352" text-anchor="middle">AstraVesting</text>
+        <text class="node-sub" x="140" y="372" text-anchor="middle">release() → transfer</text>
+        <text class="node-sub" x="140" y="388" text-anchor="middle">createSchedule(...)</text>
+
+        <rect class="node-box" x="300" y="320" width="220" height="90" stroke="#3dd68c" />
+        <text class="node-title" x="410" y="350" text-anchor="middle">AstraStaking</text>
+        <text class="node-sub" x="410" y="370" text-anchor="middle">stake / unstake / claim</text>
+        <text class="node-sub" x="410" y="386" text-anchor="middle">transferForBurn(amount)</text>
+        <text class="node-sub" x="410" y="402" text-anchor="middle">rewardPoolBalance()</text>
+
+        <rect class="node-box" x="600" y="320" width="220" height="90" stroke="#a78bfa" />
+        <text class="node-title" x="710" y="350" text-anchor="middle">AstraReferral</text>
+        <text class="node-sub" x="710" y="370" text-anchor="middle">accrueOnFirstStake(...)</text>
+        <text class="node-sub" x="710" y="386" text-anchor="middle">claimReferralReward()</text>
+        <text class="node-sub" x="710" y="402" text-anchor="middle">only staking 可记账</text>
+
+        <rect class="node-box" x="300" y="520" width="240" height="90" stroke="#f87171" />
+        <text class="node-title" x="420" y="550" text-anchor="middle">AstraBurnController</text>
+        <text class="node-sub" x="420" y="570" text-anchor="middle">checkAndBurn()</text>
+        <text class="node-sub" x="420" y="586" text-anchor="middle">previewBurnAmount()</text>
+        <text class="node-sub" x="420" y="602" text-anchor="middle">setParams(...)</text>
+
+        <rect class="node-box" x="620" y="530" width="200" height="78" stroke="#67e8f9" />
+        <text class="node-title" x="720" y="562" text-anchor="middle">MockOracleAdapter</text>
+        <text class="node-sub" x="720" y="582" text-anchor="middle">setMetrics(netLiq, dev)</text>
+        <text class="node-sub" x="720" y="598" text-anchor="middle">public getters</text>
+
+        <!-- Edges: User -> contracts -->
+        <path d="M110 104 V300" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#arrow)" />
+        <text class="edge-label" x="118" y="200">release()</text>
+
+        <path d="M150 104 C150 200 360 200 360 320" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#arrow)" />
+        <text class="edge-label" x="200" y="168">stake(amount, referrer)</text>
+        <text class="edge-sub" x="200" y="182">unstake / claimReward</text>
+
+        <path d="M180 80 C520 80 650 200 700 320" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#arrow)" />
+        <text class="edge-label" x="560" y="140">claimReferralReward()</text>
+
+        <!-- Keeper -->
+        <path d="M470 104 V520" stroke="#f87171" stroke-width="1.8" fill="none" marker-end="url(#arrow-red)" />
+        <text class="edge-label" x="478" y="460" fill="#fca5a5">checkAndBurn()</text>
+
+        <path d="M520 72 C700 72 720 400 720 530" stroke="#f87171" stroke-width="1.5" fill="none" marker-end="url(#arrow-red)" />
+        <text class="edge-label" x="730" y="300" fill="#fca5a5">setMetrics(...)</text>
+
+        <!-- Staking -> Referral -->
+        <path d="M520 365 H600" stroke="#3dd68c" stroke-width="2" fill="none" marker-end="url(#arrow-green)" />
+        <text class="edge-label" x="525" y="350" fill="#86efac">accrueOnFirstStake</text>
+        <text class="edge-sub" x="525" y="364">(user, amount, referrer)</text>
+
+        <!-- Staking -> Token -->
+        <path d="M410 320 V258" stroke="#f0b429" stroke-width="1.8" fill="none" marker-end="url(#arrow-amber)" />
+        <text class="edge-label" x="418" y="290" fill="#fcd34d">transfer / transferFrom</text>
+        <text class="edge-sub" x="418" y="304">balanceOf</text>
+
+        <!-- Vesting -> Token -->
+        <path d="M200 340 C320 280 400 240 430 230" stroke="#f0b429" stroke-width="1.5" fill="none" marker-end="url(#arrow-amber)" />
+        <text class="edge-label" x="250" y="270" fill="#fcd34d">safeTransfer</text>
+
+        <!-- Referral -> Token -->
+        <path d="M680 320 C680 280 600 250 560 240" stroke="#f0b429" stroke-width="1.5" fill="none" marker-end="url(#arrow-amber)" />
+        <text class="edge-label" x="620" y="268" fill="#fcd34d">safeTransfer(claim)</text>
+
+        <!-- Burn -> Staking -->
+        <path d="M400 520 V410" stroke="#f87171" stroke-width="2" fill="none" marker-end="url(#arrow-red)" />
+        <text class="edge-label" x="250" y="470" fill="#fca5a5">transferForBurn(amount)</text>
+        <text class="edge-sub" x="250" y="484">rewardPoolBalance()</text>
+
+        <!-- Burn -> Oracle -->
+        <path d="M540 565 H620" stroke="#67e8f9" stroke-width="1.8" fill="none" marker-end="url(#arrow)" />
+        <text class="edge-label" x="545" y="555" fill="#a5f3fc">netLiquidityAddedETH()</text>
+        <text class="edge-sub" x="545" y="568">priceDeviationBps()</text>
+
+        <!-- Burn -> Token -->
+        <path d="M480 520 C560 480 560 300 530 258" stroke="#f87171" stroke-width="2" fill="none" marker-end="url(#arrow-red)" />
+        <text class="edge-label" x="565" y="420" fill="#fca5a5">burn(amount)</text>
+
+        <!-- Deploy mint note -->
+        <text class="edge-sub" x="760" y="200">部署时 constructor 一次性 mint 到</text>
+        <text class="edge-sub" x="760" y="214">Eco / Staking / Vesting / Liquidity</text>
+      </svg>
+    </div>
+
+    <!-- ===================== 场景流程 ===================== -->
+    <section>
+      <h2>关键场景调用链（含参数）</h2>
+      <div class="tabs" id="flow-tabs">
+        <button type="button" class="active" data-flow="stake">① 首次质押 + 推荐</button>
+        <button type="button" data-flow="claim">② 领质押奖励 / 赎回</button>
+        <button type="button" data-flow="vest">③ 归属释放</button>
+        <button type="button" data-flow="burn">④ Keeper 动态销毁</button>
+        <button type="button" data-flow="deploy">⑤ 部署绑定关系</button>
+      </div>
+
+      <div class="flow active" id="flow-stake">
+        <ol class="steps">
+          <li>
+            <span class="who user">User</span>
+            先对 Token 授权：
+            <code>AstraToken.approve(staking, amount)</code>
+          </li>
+          <li>
+            <span class="who user">User</span>
+            <code>AstraStaking.stake(uint256 amount, address referrer)</code>
+          </li>
+          <li>
+            <span class="who contract">Staking → Token</span>
+            <code>transferFrom(user, staking, amount)</code>
+            — 本金进入质押合约
+          </li>
+          <li>
+            <span class="who contract">Staking → Referral</span>
+            （仅首次且 <code>referrer != 0</code>）
+            <code>accrueOnFirstStake(user, firstStakeAmount=amount, referrer)</code>
+            → 返回 <code>reward = amount * 500 / 10000</code>
+          </li>
+          <li>
+            <span class="who contract">Staking → Token → Referral</span>
+            <code>safeTransfer(referral, referralReward)</code>
+            — 社区奖励池出账到 Referral 托管
+          </li>
+          <li>
+            <span class="who user">推荐人</span>
+            之后可调用
+            <code>AstraReferral.claimReferralReward()</code>
+            → <code>Token.safeTransfer(referrer, pending)</code>
+          </li>
+        </ol>
+      </div>
+
+      <div class="flow" id="flow-claim">
+        <ol class="steps">
+          <li>
+            <span class="who user">User</span>
+            <code>AstraStaking.claimReward()</code>
+            或 <code>claim()</code>（无参数别名）
+          </li>
+          <li>
+            <span class="who contract">Staking</span>
+            内部 <code>updatePool()</code> 更新 <code>accRewardPerShare</code>
+          </li>
+          <li>
+            <span class="who contract">Staking → Token</span>
+            <code>safeTransfer(user, pending)</code>
+          </li>
+          <li>
+            <span class="who user">User</span>
+            赎回：
+            <code>AstraStaking.unstake(uint256 amount)</code>
+            → 先发 pending 奖励，再
+            <code>safeTransfer(user, amount)</code> 退本金
+          </li>
+        </ol>
+      </div>
+
+      <div class="flow" id="flow-vest">
+        <ol class="steps">
+          <li>
+            <span class="who admin">Admin</span>
+            <code>AstraVesting.setAstraToken(address token)</code>
+          </li>
+          <li>
+            <span class="who admin">Admin</span>
+            <code>createSchedule(beneficiary, totalAmount, start, cliff, duration)</code>
+          </li>
+          <li>
+            <span class="who user">受益人</span>
+            <code>AstraVesting.release()</code>
+            — 无入参，领取人为 <code>msg.sender</code>
+          </li>
+          <li>
+            <span class="who contract">Vesting → Token</span>
+            <code>safeTransfer(beneficiary, releasable)</code>
+          </li>
+        </ol>
+      </div>
+
+      <div class="flow" id="flow-burn">
+        <ol class="steps">
+          <li>
+            <span class="who keeper">Keeper / Updater</span>
+            <code>MockOracleAdapter.setMetrics(uint256 netLiquidityAddedETH_, uint256 priceDeviationBps_)</code>
+          </li>
+          <li>
+            <span class="who keeper">Keeper</span>
+            <code>AstraBurnController.checkAndBurn()</code>
+            — 无入参；读 Oracle + 本合约参数
+          </li>
+          <li>
+            条件：
+            <code>netLiq &lt; minLiquidityAddedETH</code>
+            且
+            <code>deviation &gt; maxPriceDeviationBps</code>
+            且本 epoch 未烧过
+          </li>
+          <li>
+            <span class="who contract">Burn → Staking</span>
+            <code>rewardPoolBalance()</code> 计算额度；
+            <code>transferForBurn(uint256 amount)</code>
+          </li>
+          <li>
+            <span class="who contract">Staking → Token</span>
+            <code>safeTransfer(burnController, amount)</code>
+          </li>
+          <li>
+            <span class="who contract">Burn → Token</span>
+            <code>burn(uint256 amount)</code>
+            — 销毁调用者（BurnController）余额；需 <code>BURNER_ROLE</code>
+          </li>
+        </ol>
+      </div>
+
+      <div class="flow" id="flow-deploy">
+        <ol class="steps">
+          <li>部署顺序建议：Vesting → Staking → Referral → Oracle → <strong>Token</strong>（mint 到各地址）→ BurnController</li>
+          <li>
+            <code>Token.constructor(adminSafe, ecosystemFund, communityRewardPool=staking, vestingContract, liquidityReserve)</code>
+          </li>
+          <li>
+            <code>staking.setAstraToken(token)</code> ·
+            <code>staking.setReferral(referral)</code> ·
+            <code>staking.setBurnController(burn)</code>
+          </li>
+          <li>
+            <code>referral.setAstraToken(token)</code> ·
+            <code>referral.setStaking(staking)</code>
+          </li>
+          <li>
+            <code>vesting.setAstraToken(token)</code>
+          </li>
+          <li>
+            <code>token.grantRole(BURNER_ROLE, burnController)</code>
+          </li>
+          <li>
+            <code>burn.setParams(epochDuration, minLiquidityAddedETH, maxPriceDeviationBps, burnBps, maxBurnPerEpoch)</code>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ===================== 跨合约调用表 ===================== -->
+    <section>
+      <h2>跨合约调用明细表</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>调用方</th>
+            <th>被调用方</th>
+            <th>方法与参数</th>
+            <th>何时触发</th>
+            <th>类型</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>AstraStaking</td>
+            <td>AstraToken</td>
+            <td><code>transferFrom(from=user, to=staking, amount)</code></td>
+            <td><code>stake</code></td>
+            <td><span class="tag write">写</span></td>
+          </tr>
+          <tr>
+            <td>AstraStaking</td>
+            <td>AstraToken</td>
+            <td><code>safeTransfer(to=user|referral|burnCtrl, amount)</code></td>
+            <td>发奖 / 退本金 / 推荐托管 / burn 划转</td>
+            <td><span class="tag write">写</span></td>
+          </tr>
+          <tr>
+            <td>AstraStaking</td>
+            <td>AstraToken</td>
+            <td><code>balanceOf(staking)</code></td>
+            <td><code>rewardPoolBalance</code></td>
+            <td><span class="tag view">读</span></td>
+          </tr>
+          <tr>
+            <td>AstraStaking</td>
+            <td>AstraReferral<br/><span class="tag">via IAstraReferral</span></td>
+            <td>
+              <code>accrueOnFirstStake(address user, uint256 firstStakeAmount, address referrer) → uint256 reward</code>
+            </td>
+            <td>用户首次 <code>stake</code> 且 referrer≠0</td>
+            <td><span class="tag write">写</span></td>
+          </tr>
+          <tr>
+            <td>AstraVesting</td>
+            <td>AstraToken</td>
+            <td><code>safeTransfer(beneficiary, amount)</code></td>
+            <td><code>release()</code></td>
+            <td><span class="tag write">写</span></td>
+          </tr>
+          <tr>
+            <td>AstraReferral</td>
+            <td>AstraToken</td>
+            <td><code>safeTransfer(referrer, amount)</code></td>
+            <td><code>claimReferralReward()</code></td>
+            <td><span class="tag write">写</span></td>
+          </tr>
+          <tr>
+            <td>AstraBurnController</td>
+            <td>MockOracleAdapter</td>
+            <td>
+              <code>netLiquidityAddedETH()</code><br/>
+              <code>priceDeviationBps()</code>
+            </td>
+            <td><code>checkAndBurn()</code></td>
+            <td><span class="tag view">读</span></td>
+          </tr>
+          <tr>
+            <td>AstraBurnController</td>
+            <td>AstraStaking<br/><span class="tag">via IAstraStakingBurnSource</span></td>
+            <td>
+              <code>rewardPoolBalance() → uint256</code><br/>
+              <code>transferForBurn(uint256 amount)</code>
+            </td>
+            <td><code>previewBurnAmount</code> / <code>checkAndBurn</code></td>
+            <td><span class="tag view">读</span><span class="tag write">写</span></td>
+          </tr>
+          <tr>
+            <td>AstraBurnController</td>
+            <td>AstraToken<br/><span class="tag">via IAstraTokenBurn</span></td>
+            <td><code>burn(uint256 amount)</code></td>
+            <td><code>checkAndBurn</code> 划转成功后</td>
+            <td><span class="tag write">写</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===================== 各合约对外 API ===================== -->
+    <section>
+      <h2>各合约对外方法一览</h2>
+      <div class="grid-2">
+        <div class="card" style="border-color:#f0b429">
+          <h3 style="color:var(--token)">AstraToken</h3>
+          <ul>
+            <li><strong>constructor</strong>(adminSafe, ecosystemFund, communityRewardPool, vestingContract, liquidityReserve)</li>
+            <li><strong>burn</strong>(uint256 amount) <span class="tag write">BURNER_ROLE</span></li>
+            <li>标准 ERC20 / Permit / AccessControl</li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:#fb923c">
+          <h3 style="color:var(--vesting)">AstraVesting</h3>
+          <ul>
+            <li><strong>setAstraToken</strong>(address token) <span class="tag config">Admin</span></li>
+            <li><strong>createSchedule</strong>(beneficiary, totalAmount, start, cliff, duration) <span class="tag config">Admin</span></li>
+            <li><strong>release</strong>() <span class="tag write">受益人</span></li>
+            <li><strong>releasable</strong>(address) / <strong>getSchedule</strong>(address) <span class="tag view">读</span></li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:#3dd68c">
+          <h3 style="color:var(--staking)">AstraStaking</h3>
+          <ul>
+            <li><strong>setAstraToken</strong> / <strong>setReferral</strong> / <strong>setBurnController</strong> <span class="tag config">Admin</span></li>
+            <li><strong>setRewardRatePerSec</strong>(uint256) <span class="tag config">PARAM_SETTER</span></li>
+            <li><strong>stake</strong>(uint256 amount, address referrer)</li>
+            <li><strong>unstake</strong>(uint256 amount) / <strong>claimReward</strong>()</li>
+            <li><strong>transferForBurn</strong>(uint256 amount) <span class="tag write">仅 BurnController</span></li>
+            <li><strong>rewardPoolBalance</strong>() / <strong>pendingReward</strong>(user) <span class="tag view">读</span></li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:#a78bfa">
+          <h3 style="color:var(--referral)">AstraReferral</h3>
+          <ul>
+            <li><strong>setAstraToken</strong> / <strong>setStaking</strong> <span class="tag config">Admin</span></li>
+            <li><strong>accrueOnFirstStake</strong>(user, firstStakeAmount, referrer) → reward <span class="tag write">仅 Staking</span></li>
+            <li><strong>claimReferralReward</strong>()</li>
+            <li><strong>pendingReferralReward</strong>(referrer) / <strong>referrerOf</strong>(user) <span class="tag view">读</span></li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:#f87171">
+          <h3 style="color:var(--burn)">AstraBurnController</h3>
+          <ul>
+            <li><strong>constructor</strong>(adminSafe, token_, staking_, oracle_)</li>
+            <li><strong>setStaking</strong> / <strong>setOracle</strong> <span class="tag config">Admin</span></li>
+            <li><strong>setParams</strong>(epochDuration, minLiquidityAddedETH, maxPriceDeviationBps, burnBps, maxBurnPerEpoch) <span class="tag config">PARAM_SETTER</span></li>
+            <li><strong>checkAndBurn</strong>() → burned <span class="tag write">KEEPER</span></li>
+            <li><strong>previewBurnAmount</strong>() / <strong>currentEpoch</strong>() <span class="tag view">读</span></li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:#67e8f9">
+          <h3 style="color:var(--oracle)">MockOracleAdapter</h3>
+          <ul>
+            <li><strong>setMetrics</strong>(netLiquidityAddedETH_, priceDeviationBps_) <span class="tag config">ORACLE_UPDATER</span></li>
+            <li>public：<strong>netLiquidityAddedETH</strong> / <strong>priceDeviationBps</strong> / <strong>updatedAt</strong></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 接口层 ===================== -->
+    <section>
+      <h2>interfaces/ 解耦层</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>接口</th>
+            <th>被谁依赖</th>
+            <th>方法签名</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>IAstraReferral</code></td>
+            <td>AstraStaking</td>
+            <td><code>accrueOnFirstStake(address user, uint256 firstStakeAmount, address referrer) external returns (uint256 reward)</code></td>
+          </tr>
+          <tr>
+            <td><code>IAstraStakingBurnSource</code></td>
+            <td>AstraBurnController</td>
+            <td>
+              <code>rewardPoolBalance() external view returns (uint256)</code><br/>
+              <code>transferForBurn(uint256 amount) external</code>
+            </td>
+          </tr>
+          <tr>
+            <td><code>IAstraTokenBurn</code></td>
+            <td>AstraBurnController</td>
+            <td><code>burn(uint256 amount) external</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      生成自仓库 <code>contracts/</code> 当前实现 · 用浏览器直接打开本 HTML 即可查看 ·
+      路径建议：<code>docs/合约调用关系图.html</code>
+    </footer>
+  </div>
+
+  <script>
+    const tabs = document.querySelectorAll("#flow-tabs button");
+    const flows = document.querySelectorAll(".flow");
+    tabs.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        tabs.forEach((b) => b.classList.remove("active"));
+        flows.forEach((f) => f.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("flow-" + btn.dataset.flow).classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>

@@ -5,7 +5,7 @@ import { parseEther, zeroAddress } from "viem";
 
 describe("AstraToken (reference)", function () {
     // ---------------------------------------------------------------------------
-    // Fixture: deploy once per test group, reset via snapshot (same pattern as Lock.ts)
+    // Fixture: deploy once per test group, reset via snapshot
     // ---------------------------------------------------------------------------
     async function deployAstraTokenFixture() {
         const [

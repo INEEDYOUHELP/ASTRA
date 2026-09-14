@@ -18,6 +18,8 @@ contract AstraStaking is AccessControl, ReentrancyGuard {
 
     IERC20 public astraToken;
     IAstraReferral public referral;
+    /// @dev 仅允许该地址调用 transferForBurn，从奖励池划转销毁额度
+    address public burnController;
     bool private _tokenSet;
 
     uint256 public totalStaked;
@@ -36,6 +38,8 @@ contract AstraStaking is AccessControl, ReentrancyGuard {
 
     event AstraTokenSet(address indexed token);
     event ReferralSet(address indexed referral);
+    event BurnControllerSet(address indexed burnController);
+    event BurnTransferred(address indexed to, uint256 amount);
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardClaimed(address indexed user, uint256 amount);
@@ -60,6 +64,29 @@ contract AstraStaking is AccessControl, ReentrancyGuard {
     function setReferral(address referral_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         referral = IAstraReferral(referral_);
         emit ReferralSet(referral_);
+    }
+
+    function setBurnController(
+        address burnController_
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(burnController_ != address(0), "burnController=0");
+        burnController = burnController_;
+        emit BurnControllerSet(burnController_);
+    }
+
+    /**
+     * @notice 仅 BurnController 可调用：从「奖励池」划转 ASTRA（不动质押本金）
+     * @dev amount 必须 ≤ rewardPoolBalance() = balanceOf(this) - totalStaked
+     */
+    function transferForBurn(uint256 amount) external nonReentrant {
+        require(msg.sender == burnController, "only burn controller");
+        require(amount > 0, "amount=0");
+        _requireTokenSet();
+        require(amount <= rewardPoolBalance(), "exceeds reward pool");
+
+        astraToken.safeTransfer(msg.sender, amount);
+        emit BurnTransferred(msg.sender, amount);
+        _checkLock();
     }
 
     function setRewardRatePerSec(uint256 newRate) external onlyRole(PARAM_SETTER_ROLE) {
@@ -133,10 +160,20 @@ contract AstraStaking is AccessControl, ReentrancyGuard {
         userInfo.amount += amount;
         totalStaked += amount;
 
+        // 仅「人生第一次质押」可绑定推荐人；之后再 stake 不会再走推荐逻辑
         if (!userInfo.hasStakedBefore) {
             userInfo.hasStakedBefore = true;
             if (referrer != address(0) && address(referral) != address(0)) {
-                referral.accrueOnFirstStake(msg.sender, amount, referrer);
+                // 1) Referral 记账（绑定 + pending += 5%）
+                // 2) 立刻从社区奖励池划转等额 ASTRA 到 Referral 托管，供推荐人 claim
+                uint256 referralReward = referral.accrueOnFirstStake(
+                    msg.sender,
+                    amount,
+                    referrer
+                );
+                if (referralReward > 0) {
+                    astraToken.safeTransfer(address(referral), referralReward);
+                }
             }
         }
 

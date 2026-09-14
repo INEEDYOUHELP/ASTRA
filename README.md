@@ -224,11 +224,8 @@ Keeper 周期触发 checkAndBurn() → 动态调节供应
 Aster/
 ├── contracts/              # 核心 Solidity 合约
 │   └── interfaces/
-├── script/                 # 部署与配置脚本
+├── script/                 # 部署与配置脚本（规划中）
 ├── test/                   # 单测与集成测试
-│   ├── unit/
-│   └── integration/
-├── ignition/modules/       # Hardhat Ignition 部署模块
 ├── apps/web/               # 前端 dApp（规划中）
 ├── keeper/                 # 链下 Keeper 任务（规划中）
 ├── hardhat.config.ts
@@ -302,11 +299,13 @@ Aster/
 ## 10. 当前进度
 
 - [x] Hardhat + TypeScript + Viem 工程脚手架
-- [ ] Foundry 工程与 OpenZeppelin 依赖
-- [ ] 核心合约实现（M1 ~ M3）
+- [x] OpenZeppelin 依赖（合约侧）
+- [x] 核心合约实现（M1 Token/Vesting · M2 Staking · M3 Referral）
+- [x] 动态销毁与 Oracle mock（M5：`AstraBurnController` + `MockOracleAdapter`）
+- [ ] Foundry 工程（可选增强）
 - [ ] 部署脚本与测试网部署（M4）
-- [ ] 动态销毁与 Keeper（M5）
 - [ ] 前端 dApp 与演示材料（M6）
+- [ ] 独立 Keeper 链下任务目录（合约/mock 已就绪，运维脚本待补）
 
 ---
 
